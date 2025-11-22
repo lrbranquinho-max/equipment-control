@@ -2,19 +2,19 @@
 
 ## Funcionalidades Principais
 
-- [ ] Integração com Firebase (SDK, configuração de credenciais)
-- [ ] Interface de usuário com botões Retirar, Devolver e Histórico
-- [ ] Formulário para registrar Número de Patrimônio do equipamento
-- [ ] Campo para registrar CPF do usuário (apenas números)
-- [ ] Campo para registrar inconformidades/estado do equipamento
-- [ ] Lógica de registro de retirada no Firebase
-- [ ] Lógica de registro de devolução no Firebase
-- [ ] Funcionalidade de busca de histórico por período de datas
-- [ ] Exibição de relatório com registros do período
-- [ ] Validação de entrada de dados (CPF, Patrimônio, datas)
-- [ ] Responsividade para dispositivos móveis Android
-- [ ] Testes e verificação de funcionalidades
-- [ ] Deploy no GitHub Pages
+- [x] Interface de usuário com botões Retirar, Devolver e Histórico
+- [x] Formulário para registrar Número de Patrimônio do equipamento
+- [x] Campo para registrar CPF do usuário (apenas números)
+- [x] Campo para registrar inconformidades/estado do equipamento
+- [x] Funcionalidade de busca de histórico por período de datas
+- [x] Exibição de relatório com registros do período
+- [x] Validação de entrada de dados (CPF, Patrimônio, datas)
+- [x] Responsividade para dispositivos móveis Android
+- [x] Deploy no GitHub Pages
+- [ ] Integração com Firebase Firestore (SDK, configuração de credenciais)
+- [ ] Lógica de registro de retirada no Firebase Firestore
+- [ ] Lógica de registro de devolução no Firebase Firestore
+- [ ] Testes com Firebase em múltiplos navegadores/dispositivos
 - [ ] Documentação do projeto
 
 ## Melhorias Futuras
