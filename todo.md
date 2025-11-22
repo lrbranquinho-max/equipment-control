@@ -19,6 +19,7 @@
 
 ## Melhorias Futuras
 
+- [x] Adicionar filtro opcional por número de patrimônio no histórico
 - [ ] Autenticação de usuários
 - [ ] Exportação de relatórios em PDF
 - [ ] Notificações de equipamentos vencidos

@@ -462,6 +462,11 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="filterPatrimony">Número de Patrimônio (Opcional)</label>
+                <input type="text" id="filterPatrimony" placeholder="Digite o número de patrimônio para filtrar">
+            </div>
+
             <button class="search-btn" id="searchBtn">Buscar Registros</button>
 
             <div id="historyResults"></div>
@@ -568,6 +573,7 @@
         function handleSearchHistory() {
             const startDate = startDateInput.value;
             const endDate = endDateInput.value;
+            const filterPatrimony = document.getElementById('filterPatrimony').value.trim();
 
             if (!startDate || !endDate) {
                 showToast('Por favor, informe ambas as datas', 'error');
@@ -578,13 +584,15 @@
             const end = new Date(endDate).getTime() + 86400000; // Add 24 hours
 
             const filteredRecords = records.filter(record => {
-                return record.timestamp >= start && record.timestamp <= end;
+                const dateMatch = record.timestamp >= start && record.timestamp <= end;
+                const patrimonyMatch = !filterPatrimony || record.patrimonyNumber.includes(filterPatrimony);
+                return dateMatch && patrimonyMatch;
             });
 
             displayHistoryResults(filteredRecords);
 
             if (filteredRecords.length === 0) {
-                showToast('Nenhum registro encontrado para o período selecionado', 'info');
+                showToast('Nenhum registro encontrado para os filtros selecionados', 'info');
             } else {
                 showToast(`${filteredRecords.length} registro(s) encontrado(s)`, 'success');
             }
