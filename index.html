@@ -461,8 +461,10 @@
                 
                 const url = `${appScriptUrl}?${params.toString()}`;
 
+                // Usando fetch com mode: 'no-cors' para garantir que a requisição POST passe
+                // O Apps Script agora aceita GET para salvar, o que resolve o CORS
                 const response = await fetch(url, {
-                    method: 'GET', // Usando GET para contornar o problema de CORS
+                    method: 'GET',
                     mode: 'cors',
                     cache: 'no-cache'
                 });
@@ -482,50 +484,59 @@
             }
         }
 
-        async function buscarAppsScript(startDate, endDate, filterPatrimony) {
-            try {
-                // Constrói a URL para a requisição GET de busca
-                const url = `${appScriptUrl}?action=search`;
+        // Função de callback global para JSONP
+        window.handleAppsScriptResponse = function(data) {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const filterPatrimony = document.getElementById('filterPatrimony').value.trim();
 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    console.error('Erro ao buscar no Apps Script:', data.error);
-                    showAlertModal(`Erro ao buscar histórico: ${data.error}`, 'error');
-                    loading.classList.remove('show');
-                    return;
-                }
-
-                // Filtragem dos dados
-                const startDateTime = new Date(startDate).getTime();
-                // Adiciona 1 dia (86400000 ms) para incluir o dia final completo
-                const endDateTime = new Date(endDate).getTime() + 86400000; 
-
-                let resultados = data.filter(reg => {
-                    // O timestamp vem como string ISO do Apps Script
-                    const regDateTime = new Date(reg.timestamp).getTime();
-                    const matchDate = regDateTime >= startDateTime && regDateTime <= endDateTime;
-                    const matchPatrimony = !filterPatrimony || reg.patrimony.toString().includes(filterPatrimony);
-                    return matchDate && matchPatrimony;
-                });
-
-                // Ordenar por data/hora (mais recente primeiro)
-                resultados.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-                exibirResultados(resultados, startDate, endDate);
-
-            } catch (error) {
-                console.error('Erro de rede ao buscar:', error);
-                showAlertModal('Erro de conexão com o servidor ao buscar histórico.', 'error');
+            if (data.error) {
+                console.error('Erro ao buscar no Apps Script:', data.error);
+                showAlertModal(`Erro ao buscar histórico: ${data.error}`, 'error');
                 loading.classList.remove('show');
+                return;
             }
-       }
+
+            // Filtragem dos dados
+            const startDateTime = new Date(startDate).getTime();
+            // Adiciona 1 dia (86400000 ms) para incluir o dia final completo
+            const endDateTime = new Date(endDate).getTime() + 86400000; 
+
+            let resultados = data.filter(reg => {
+                // O timestamp vem como string ISO do Apps Script
+                const regDateTime = new Date(reg.timestamp).getTime();
+                const matchDate = regDateTime >= startDateTime && regDateTime <= endDateTime;
+                const matchPatrimony = !filterPatrimony || reg.patrimony.toString().includes(filterPatrimony);
+                return matchDate && matchPatrimony;
+            });
+
+            // Ordenar por data/hora (mais recente primeiro)
+            resultados.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            exibirResultados(resultados, startDate, endDate);
+        }
+
+        function buscarHistorico() {
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+            const filterPatrimony = filterPatrimonyInput.value.trim();
+
+            if (!startDate || !endDate) {
+                showAlertModal('Por favor, informe as datas de início e fim', 'error');
+                return;
+            }
+
+            loading.classList.add('show');
+            historyResults.innerHTML = '';
+
+            // Usando JSONP para contornar o CORS na busca
+            const url = `${appScriptUrl}?action=search&callback=handleAppsScriptResponse`;
+
+            const script = document.createElement('script');
+            script.src = url;
+            document.head.appendChild(script);
+            document.head.removeChild(script); // Remove o script após a execução
+        }
 
         // Variáveis globais
         let currentAction = null;
@@ -637,25 +648,6 @@
             endDateInput.value = today.toISOString().split('T')[0];
             startDateInput.value = sevenDaysAgo.toISOString().split('T')[0];
         }
-
-        function buscarHistorico() {
-            const startDate = startDateInput.value;
-            const endDate = endDateInput.value;
-            const filterPatrimony = filterPatrimonyInput.value.trim();
-
-            if (!startDate || !endDate) {
-                showAlertModal('Por favor, informe as datas de início e fim', 'error');
-                return;
-            }
-
-            loading.classList.add('show');
-            historyResults.innerHTML = '';
-
-            // Novo: Buscar no Apps Script
-            buscarAppsScript(startDate, endDate, filterPatrimony);
-        }
-
-
 
         function exibirResultados(resultados, startDate, endDate) {
             loading.classList.remove('show');
