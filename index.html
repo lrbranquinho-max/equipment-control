@@ -368,22 +368,6 @@
             color: #1976d2;
             border-left: 4px solid #1976d2;
         }
-
-        .firebase-status {
-            text-align: center;
-            padding: 10px;
-            font-size: 12px;
-            color: #999;
-            margin-top: 10px;
-        }
-
-        .firebase-status.connected {
-            color: #388e3c;
-        }
-
-        .firebase-status.disconnected {
-            color: #d32f2f;
-        }
     </style>
 </head>
 <body>
@@ -395,108 +379,144 @@
 
         <div class="card">
             <div class="card-title">Registrar Operação</div>
-            <div class="card-subtitle">Selecione a ação, informe os dados e confirme</div>
-
-            <div id="alert" class="alert"></div>
-
+            <div class="alert" id="alert"></div>
             <div class="button-group">
-                <button class="btn" id="withdrawBtn">✓ Retirar</button>
-                <button class="btn" id="returnBtn">⟲ Devolver</button>
+                <button class="btn" id="withdrawBtn">Retirar</button>
+                <button class="btn" id="returnBtn">Devolver</button>
             </div>
 
-            <form id="registrationForm">
+            <form id="operationForm">
                 <div class="form-group">
                     <label for="patrimony">Número de Patrimônio</label>
-                    <input type="text" id="patrimony" placeholder="Digite o número de patrimônio" required>
+                    <input type="text" id="patrimony" required>
                 </div>
-
                 <div class="form-group">
-                    <label for="cpf">CPF (apenas números)</label>
-                    <input type="text" id="cpf" placeholder="Digite seu CPF" inputmode="numeric" required>
+                    <label for="cpf">CPF (Apenas números)</label>
+                    <input type="text" id="cpf" maxlength="11" required>
                 </div>
-
                 <div class="form-group">
-                    <label for="observations">Estado do Equipamento / Observações</label>
-                    <textarea id="observations" placeholder="Descreva o estado do equipamento ou qualquer inconformidade"></textarea>
+                    <label for="observations">Status/Observações</label>
+                    <textarea id="observations" placeholder="Ex: Tela trincada, bateria viciada, etc."></textarea>
                 </div>
-
-                <button type="submit" class="submit-btn" id="submitBtn">Confirmar Registro</button>
+                <button type="submit" class="submit-btn" id="submitBtn">Registrar Operação</button>
             </form>
 
             <button class="history-btn" id="historyBtn">🕐 Buscar Histórico</button>
 
-            <div class="firebase-status" id="firebaseStatus">Conectando ao Firebase...</div>
+    
         </div>
     </div>
 
     <!-- Modal de Histórico -->
-    <div id="historyModal" class="modal">
+    <div class="modal" id="historyModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Histórico de Registros</h2>
+                <h2>Histórico de Operações</h2>
                 <button class="close-btn" id="closeModal">&times;</button>
             </div>
-
-            <div id="alert-modal" class="alert"></div>
-
+            <div class="alert" id="alert-modal"></div>
             <div class="form-group">
                 <label for="startDate">Data Inicial</label>
-                <input type="date" id="startDate">
+                <input type="date" id="startDate" required>
             </div>
-
             <div class="form-group">
                 <label for="endDate">Data Final</label>
-                <input type="date" id="endDate">
+                <input type="date" id="endDate" required>
             </div>
-
             <div class="form-group">
-                <label for="filterPatrimony">Número de Patrimônio (Opcional)</label>
-                <input type="text" id="filterPatrimony" placeholder="Digite o número de patrimônio para filtrar">
+                <label for="filterPatrimony">Filtrar por Patrimônio (Opcional)</label>
+                <input type="text" id="filterPatrimony">
             </div>
-
-            <button class="search-btn" id="searchBtn">Buscar Registros</button>
+            <button class="search-btn" id="searchBtn">Buscar</button>
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Carregando registros...</p>
+                <p>Buscando dados...</p>
             </div>
 
-            <div class="results" id="historyResults"></div>
-
+            <div class="results" id="historyResults">
+                <!-- Resultados da busca serão inseridos aqui -->
+            </div>
             <button class="export-btn" id="exportBtn" style="display: none;">📥 Exportar para CSV</button>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
-
     <script>
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBiEHgcPLxUe62gZ8RLK3VOaCdDdSleW6s",
-            authDomain: "controleequipamentos-bcefb.firebaseapp.com",
-            projectId: "controleequipamentos-bcefb",
-            storageBucket: "controleequipamentos-bcefb.firebasestorage.app",
-            messagingSenderId: "389421623360",
-            appId: "1:389421623360:web:b05b959d70ca3542c217a5"
-        };
+        // Configuração do Google Apps Script URL (Substituir pelo URL real)
+        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzhI8neyx4T3Zo-1wflKJHc3Eng5DV2FFn_Hl21j0T0Y-TarIqo51YBjX5LVd-Lc2mxIg/exec'; // URL do Apps Script fornecido pelo usuário
 
-        // Inicializar Firebase
-        let db = null;
-        let firebaseInitialized = false;
+        // Variável para armazenar o URL do Apps Script
+        let appScriptUrl = APP_SCRIPT_URL;
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            firebaseInitialized = true;
-            updateFirebaseStatus(true);
-        } catch (error) {
-            console.error('Erro ao inicializar Firebase:', error);
-            updateFirebaseStatus(false);
-            // Usar localStorage como fallback
-            console.log('Usando localStorage como fallback');
+        // Funções de comunicação com o Apps Script
+        async function salvarAppsScript(registro) {
+            try {
+                const response = await fetch(appScriptUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(registro)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert(`Registro de ${registro.action} realizado com sucesso!`, 'success');
+                    limparFormulario();
+                } else {
+                    console.error('Erro ao salvar no Apps Script:', result.error);
+                    showAlert(`Erro ao salvar: ${result.error}. Tente novamente.`, 'error');
+                }
+            } catch (error) {
+                console.error('Erro de rede ao salvar:', error);
+                showAlert('Erro de conexão com o servidor. Tente novamente.', 'error');
+            }
         }
+
+        async function buscarAppsScript(startDate, endDate, filterPatrimony) {
+            try {
+                const response = await fetch(appScriptUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('Erro ao buscar no Apps Script:', data.error);
+                    showAlertModal(`Erro ao buscar histórico: ${data.error}`, 'error');
+                    loading.classList.remove('show');
+                    return;
+                }
+
+                // Filtragem dos dados
+                const startDateTime = new Date(startDate).getTime();
+                // Adiciona 1 dia (86400000 ms) para incluir o dia final completo
+                const endDateTime = new Date(endDate).getTime() + 86400000; 
+
+                let resultados = data.filter(reg => {
+                    // O timestamp vem como string ISO do Apps Script
+                    const regDateTime = new Date(reg.timestamp).getTime();
+                    const matchDate = regDateTime >= startDateTime && regDateTime <= endDateTime;
+                    const matchPatrimony = !filterPatrimony || reg.patrimony.toString().includes(filterPatrimony);
+                    return matchDate && matchPatrimony;
+                });
+
+                // Ordenar por data/hora (mais recente primeiro)
+                resultados.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                exibirResultados(resultados, startDate, endDate);
+
+            } catch (error) {
+                console.error('Erro de rede ao buscar:', error);
+                showAlertModal('Erro de conexão com o servidor ao buscar histórico.', 'error');
+                loading.classList.remove('show');
+            }
+       }
 
         // Variáveis globais
         let currentAction = null;
@@ -521,7 +541,7 @@
         const alert = document.getElementById('alert');
         const alertModal = document.getElementById('alert-modal');
         const loading = document.getElementById('loading');
-        const firebaseStatus = document.getElementById('firebaseStatus');
+
 
         // Event Listeners
         withdrawBtn.addEventListener('click', () => selectAction('retirada'));
@@ -586,33 +606,11 @@
                 date: new Date().toLocaleDateString('pt-BR')
             };
 
-            if (firebaseInitialized && db) {
-                // Salvar no Firebase
-                db.collection('registros').add(registro)
-                    .then(() => {
-                        showAlert(`Registro de ${currentAction} realizado com sucesso!`, 'success');
-                        limparFormulario();
-                    })
-                    .catch((error) => {
-                        console.error('Erro ao salvar no Firebase:', error);
-                        // Fallback para localStorage
-                        salvarLocalStorage(registro);
-                        showAlert(`Registro salvo localmente (sem conexão com Firebase)`, 'info');
-                        limparFormulario();
-                    });
-            } else {
-                // Usar localStorage
-                salvarLocalStorage(registro);
-                showAlert(`Registro de ${currentAction} realizado com sucesso! (Armazenado localmente)`, 'success');
-                limparFormulario();
-            }
+            // Novo: Salvar via Apps Script
+            salvarAppsScript(registro);
         }
 
-        function salvarLocalStorage(registro) {
-            registros = JSON.parse(localStorage.getItem('registros') || '[]');
-            registros.push(registro);
-            localStorage.setItem('registros', JSON.stringify(registros));
-        }
+
 
         function limparFormulario() {
             patrimonioInput.value = '';
@@ -644,53 +642,11 @@
             loading.classList.add('show');
             historyResults.innerHTML = '';
 
-            if (firebaseInitialized && db) {
-                // Buscar no Firebase
-                const startDateTime = new Date(startDate);
-                const endDateTime = new Date(endDate);
-                endDateTime.setHours(23, 59, 59, 999);
-
-                let query = db.collection('registros')
-                    .where('timestamp', '>=', startDateTime)
-                    .where('timestamp', '<=', endDateTime);
-
-                query.get()
-                    .then((snapshot) => {
-                        let resultados = [];
-                        snapshot.forEach((doc) => {
-                            const data = doc.data();
-                            if (!filterPatrimony || data.patrimony.includes(filterPatrimony)) {
-                                resultados.push(data);
-                            }
-                        });
-                        exibirResultados(resultados, startDate, endDate);
-                    })
-                    .catch((error) => {
-                        console.error('Erro ao buscar no Firebase:', error);
-                        // Fallback para localStorage
-                        buscarLocalStorage(startDate, endDate, filterPatrimony);
-                    });
-            } else {
-                // Usar localStorage
-                buscarLocalStorage(startDate, endDate, filterPatrimony);
-            }
+            // Novo: Buscar no Apps Script
+            buscarAppsScript(startDate, endDate, filterPatrimony);
         }
 
-        function buscarLocalStorage(startDate, endDate, filterPatrimony) {
-            registros = JSON.parse(localStorage.getItem('registros') || '[]');
-            
-            const startDateTime = new Date(startDate).getTime();
-            const endDateTime = new Date(endDate).getTime() + 86400000;
 
-            let resultados = registros.filter(reg => {
-                const regDateTime = new Date(reg.timestamp).getTime();
-                const matchDate = regDateTime >= startDateTime && regDateTime <= endDateTime;
-                const matchPatrimony = !filterPatrimony || reg.patrimony.includes(filterPatrimony);
-                return matchDate && matchPatrimony;
-            });
-
-            exibirResultados(resultados, startDate, endDate);
-        }
 
         function exibirResultados(resultados, startDate, endDate) {
             loading.classList.remove('show');
@@ -754,22 +710,7 @@
             setTimeout(() => alertModal.classList.remove('show'), 5000);
         }
 
-        function updateFirebaseStatus(connected) {
-            if (connected) {
-                firebaseStatus.textContent = '✓ Conectado ao Firebase';
-                firebaseStatus.className = 'firebase-status connected';
-            } else {
-                firebaseStatus.textContent = '✗ Usando armazenamento local (sem Firebase)';
-                firebaseStatus.className = 'firebase-status disconnected';
-            }
-        }
 
-        // Carregar registros do localStorage ao iniciar
-        carregarRegistrosLocais();
-
-        function carregarRegistrosLocais() {
-            registros = JSON.parse(localStorage.getItem('registros') || '[]');
-        }
     </script>
 </body>
 </html>
