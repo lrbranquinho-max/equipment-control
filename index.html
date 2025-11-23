@@ -441,7 +441,7 @@
 
     <script>
         // Configuração do Google Apps Script URL (Substituir pelo URL real)
-        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwlk3J7mBPN44mMy5bic9bL8fuZEhDBUYv7gAUjQWMC15v-kU2rkzqe7r4JDJeuKfIxQ/exec'; // NOVO URL do Apps Script fornecido pelo usuário
+        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyw_8gIrRPk1ohEj5fd3w0TeiZBpcFO1MrlZEIJ0czTb-aMt5qLnJ91P5ImQ3l_2bcJzQ/exec'; // NOVO URL do Apps Script fornecido pelo usuário
 
         // Variável para armazenar o URL do Apps Script
         let appScriptUrl = APP_SCRIPT_URL;
@@ -449,23 +449,30 @@
         // Funções de comunicação com o Apps Script
         async function salvarAppsScript(registro) {
             try {
-                const response = await fetch(appScriptUrl, {
-                    method: 'POST',
-                    mode: 'cors', // Revertido para 'cors' após correção do Apps Script
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(registro)
+                // Constrói a URL com os parâmetros de registro para a requisição GET
+                const params = new URLSearchParams({
+                    action: 'save',
+                    patrimony: registro.patrimony,
+                    cpf: registro.cpf,
+                    actionType: registro.action,
+                    observations: registro.observations,
+                    timestamp: registro.timestamp
+                });
+                
+                const url = `${appScriptUrl}?${params.toString()}`;
+
+                const response = await fetch(url, {
+                    method: 'GET', // Usando GET para contornar o problema de CORS
+                    mode: 'cors',
+                    cache: 'no-cache'
                 });
 
-                // Se a requisição foi enviada com sucesso, tenta ler a resposta JSON
-                if (response.ok) {
+                const result = await response.json();
+
+                if (result.success) {
                     showAlert(`Registro de ${registro.action} realizado com sucesso!`, 'success');
                     limparFormulario();
                 } else {
-                    // Tenta ler o erro se for possível
-                    const result = await response.json();
                     console.error('Erro ao salvar no Apps Script:', result.error);
                     showAlert(`Erro ao salvar: ${result.error}. Tente novamente.`, 'error');
                 }
@@ -477,9 +484,12 @@
 
         async function buscarAppsScript(startDate, endDate, filterPatrimony) {
             try {
-                const response = await fetch(appScriptUrl, {
+                // Constrói a URL para a requisição GET de busca
+                const url = `${appScriptUrl}?action=search`;
+
+                const response = await fetch(url, {
                     method: 'GET',
-                    mode: 'cors', // Revertido para 'cors' após correção do Apps Script
+                    mode: 'cors',
                     cache: 'no-cache'
                 });
 
@@ -605,7 +615,7 @@
                 date: new Date().toLocaleDateString('pt-BR')
             };
 
-            // Novo: Salvar via Apps Script
+            // Novo: Salvar via Apps Script (agora usando GET)
             salvarAppsScript(registro);
         }
 
