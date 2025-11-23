@@ -479,7 +479,7 @@
             try {
                 const response = await fetch(appScriptUrl, {
                     method: 'GET',
-                    mode: 'cors', // Retorna para 'cors' para permitir a leitura do JSON na busca
+                    mode: 'no-cors', // Alterado para 'no-cors' para evitar bloqueio de CORS na busca
                     cache: 'no-cache'
                 });
 
