@@ -451,7 +451,7 @@
             try {
                 const response = await fetch(appScriptUrl, {
                     method: 'POST',
-                    mode: 'no-cors', // Mantido no-cors para evitar bloqueio, mas o tratamento da resposta é ajustado
+                    mode: 'cors', // Revertido para 'cors' após correção do Apps Script
                     cache: 'no-cache',
                     headers: {
                         'Content-Type': 'application/json'
@@ -459,8 +459,8 @@
                     body: JSON.stringify(registro)
                 });
 
-                // Se a requisição foi enviada (status 0 em no-cors), assumimos sucesso
-                if (response.type === 'opaque' || response.ok) {
+                // Se a requisição foi enviada com sucesso, tenta ler a resposta JSON
+                if (response.ok) {
                     showAlert(`Registro de ${registro.action} realizado com sucesso!`, 'success');
                     limparFormulario();
                 } else {
@@ -479,7 +479,7 @@
             try {
                 const response = await fetch(appScriptUrl, {
                     method: 'GET',
-                    mode: 'no-cors', // Alterado para 'no-cors' para evitar bloqueio de CORS na busca
+                    mode: 'cors', // Revertido para 'cors' após correção do Apps Script
                     cache: 'no-cache'
                 });
 
