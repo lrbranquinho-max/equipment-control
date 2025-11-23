@@ -368,6 +368,22 @@
             color: #1976d2;
             border-left: 4px solid #1976d2;
         }
+
+        .firebase-status {
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .firebase-status.connected {
+            color: #388e3c;
+        }
+
+        .firebase-status.disconnected {
+            color: #d32f2f;
+        }
     </style>
 </head>
 <body>
@@ -403,7 +419,7 @@
 
             <button class="history-btn" id="historyBtn">🕐 Buscar Histórico</button>
 
-    
+            <p class="firebase-status" id="firebaseStatus">Conectando à base de dados...</p>
         </div>
     </div>
 
@@ -441,82 +457,33 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+
     <script>
-        // Configuração do Google Apps Script URL (Substituir pelo URL real)
-        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzhI8neyx4T3Zo-1wflKJHc3Eng5DV2FFn_Hl21j0T0Y-TarIqo51YBjX5LVd-Lc2mxIg/exec'; // URL do Apps Script fornecido pelo usuário
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBiEHgcPLxUe62gZ8RLK3VOaCdDdSleW6s",
+            authDomain: "controleequipamentos-bcefb.firebaseapp.com",
+            projectId: "controleequipamentos-bcefb",
+            storageBucket: "controleequipamentos-bcefb.appspot.com",
+            messagingSenderId: "1037303131005",
+            appId: "1:1037303131005:web:5319853924255755141515"
+        };
 
-        // Variável para armazenar o URL do Apps Script
-        let appScriptUrl = APP_SCRIPT_URL;
-
-        // Funções de comunicação com o Apps Script
-        async function salvarAppsScript(registro) {
-            try {
-                const response = await fetch(appScriptUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(registro)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert(`Registro de ${registro.action} realizado com sucesso!`, 'success');
-                    limparFormulario();
-                } else {
-                    console.error('Erro ao salvar no Apps Script:', result.error);
-                    showAlert(`Erro ao salvar: ${result.error}. Tente novamente.`, 'error');
-                }
-            } catch (error) {
-                console.error('Erro de rede ao salvar:', error);
-                showAlert('Erro de conexão com o servidor. Tente novamente.', 'error');
-            }
+        // Initialize Firebase
+        let firebaseInitialized = false;
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            firebaseInitialized = true;
+            updateFirebaseStatus(true);
+        } catch (error) {
+            console.error("Erro ao inicializar Firebase:", error);
+            updateFirebaseStatus(false);
         }
-
-        async function buscarAppsScript(startDate, endDate, filterPatrimony) {
-            try {
-                const response = await fetch(appScriptUrl, {
-                    method: 'GET',
-                    mode: 'no-cors',
-                    cache: 'no-cache'
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    console.error('Erro ao buscar no Apps Script:', data.error);
-                    showAlertModal(`Erro ao buscar histórico: ${data.error}`, 'error');
-                    loading.classList.remove('show');
-                    return;
-                }
-
-                // Filtragem dos dados
-                const startDateTime = new Date(startDate).getTime();
-                // Adiciona 1 dia (86400000 ms) para incluir o dia final completo
-                const endDateTime = new Date(endDate).getTime() + 86400000; 
-
-                let resultados = data.filter(reg => {
-                    // O timestamp vem como string ISO do Apps Script
-                    const regDateTime = new Date(reg.timestamp).getTime();
-                    const matchDate = regDateTime >= startDateTime && regDateTime <= endDateTime;
-                    const matchPatrimony = !filterPatrimony || reg.patrimony.toString().includes(filterPatrimony);
-                    return matchDate && matchPatrimony;
-                });
-
-                // Ordenar por data/hora (mais recente primeiro)
-                resultados.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-                exibirResultados(resultados, startDate, endDate);
-
-            } catch (error) {
-                console.error('Erro de rede ao buscar:', error);
-                showAlertModal('Erro de conexão com o servidor ao buscar histórico.', 'error');
-                loading.classList.remove('show');
-            }
-       }
 
         // Variáveis globais
         let currentAction = null;
@@ -541,7 +508,7 @@
         const alert = document.getElementById('alert');
         const alertModal = document.getElementById('alert-modal');
         const loading = document.getElementById('loading');
-
+        const firebaseStatus = document.getElementById('firebaseStatus');
 
         // Event Listeners
         withdrawBtn.addEventListener('click', () => selectAction('retirada'));
@@ -602,15 +569,25 @@
                 cpf: cpf,
                 action: currentAction,
                 observations: observations,
-                timestamp: new Date().toISOString(),
+                timestamp: firebase.firestore.Timestamp.fromDate(new Date()), // Usando Timestamp do Firebase
                 date: new Date().toLocaleDateString('pt-BR')
             };
 
-            // Novo: Salvar via Apps Script
-            salvarAppsScript(registro);
+            if (firebaseInitialized && db) {
+                // Salvar no Firebase
+                db.collection('registros').add(registro)
+                    .then(() => {
+                        showAlert(`Registro de ${currentAction} realizado com sucesso!`, 'success');
+                        limparFormulario();
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao salvar no Firebase:', error);
+                        showAlert(`Erro ao salvar no Firebase: ${error.message}`, 'error');
+                    });
+            } else {
+                showAlert(`Erro: Firebase não inicializado.`, 'error');
+            }
         }
-
-
 
         function limparFormulario() {
             patrimonioInput.value = '';
@@ -642,11 +619,39 @@
             loading.classList.add('show');
             historyResults.innerHTML = '';
 
-            // Novo: Buscar no Apps Script
-            buscarAppsScript(startDate, endDate, filterPatrimony);
+            if (firebaseInitialized && db) {
+                // Buscar no Firebase
+                const startDateTime = new Date(startDate);
+                const endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+
+                let query = db.collection('registros')
+                    .where('timestamp', '>=', startDateTime)
+                    .where('timestamp', '<=', endDateTime)
+                    .orderBy('timestamp', 'desc'); // Ordena por data/hora mais recente
+
+                query.get()
+                    .then((snapshot) => {
+                        let resultados = [];
+                        snapshot.forEach((doc) => {
+                            const data = doc.data();
+                            // Filtro adicional por patrimônio (case-insensitive)
+                            if (!filterPatrimony || data.patrimony.toLowerCase().includes(filterPatrimony.toLowerCase())) {
+                                resultados.push(data);
+                            }
+                        });
+                        exibirResultados(resultados, startDate, endDate);
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao buscar no Firebase:', error);
+                        showAlertModal(`Erro ao buscar no Firebase: ${error.message}`, 'error');
+                        loading.classList.remove('show');
+                    });
+            } else {
+                showAlertModal('Erro: Firebase não inicializado.', 'error');
+                loading.classList.remove('show');
+            }
         }
-
-
 
         function exibirResultados(resultados, startDate, endDate) {
             loading.classList.remove('show');
@@ -659,12 +664,15 @@
 
             historyResults.innerHTML = '';
             resultados.forEach((reg) => {
+                // Converte o Timestamp do Firebase para objeto Date
+                const timestampDate = reg.timestamp.toDate ? reg.timestamp.toDate() : new Date(reg.timestamp);
+
                 const item = document.createElement('div');
                 item.className = 'result-item';
                 item.innerHTML = `
                     <strong>Patrimônio:</strong> ${reg.patrimony}<br>
                     <strong>CPF:</strong> ${reg.cpf}<br>
-                    <strong>Data/Hora:</strong> ${new Date(reg.timestamp).toLocaleString('pt-BR')}<br>
+                    <strong>Data/Hora:</strong> ${timestampDate.toLocaleString('pt-BR')}<br>
                     <strong>Observações:</strong> ${reg.observations || 'Nenhuma'}<br>
                     <span class="status-badge ${reg.action === 'retirada' ? 'status-retirada' : 'status-devolucao'}">
                         ${reg.action === 'retirada' ? '✓ Retirada' : '⟲ Devolução'}
@@ -687,7 +695,9 @@
 
             let csv = 'Patrimônio,CPF,Ação,Data/Hora,Observações\n';
             resultados.forEach((reg) => {
-                const timestamp = new Date(reg.timestamp).toLocaleString('pt-BR');
+                // Converte o Timestamp do Firebase para objeto Date
+                const timestampDate = reg.timestamp.toDate ? reg.timestamp.toDate() : new Date(reg.timestamp);
+                const timestamp = timestampDate.toLocaleString('pt-BR');
                 csv += `"${reg.patrimony}","${reg.cpf}","${reg.action}","${timestamp}","${reg.observations || ''}"\n`;
             });
 
@@ -710,7 +720,15 @@
             setTimeout(() => alertModal.classList.remove('show'), 5000);
         }
 
-
+        function updateFirebaseStatus(connected) {
+            if (connected) {
+                firebaseStatus.textContent = '✓ Conectado ao Firebase';
+                firebaseStatus.className = 'firebase-status connected';
+            } else {
+                firebaseStatus.textContent = '✗ Erro de conexão com o Firebase';
+                firebaseStatus.className = 'firebase-status disconnected';
+            }
+        }
     </script>
 </body>
 </html>
